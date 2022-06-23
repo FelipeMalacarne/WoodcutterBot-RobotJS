@@ -2,33 +2,62 @@
 Use RuneLite
 Marque as arvores e defina sua cor para "ff00ff"
 Marque as logs do inventario e defina sua cor para "ff0000"
+Fixed Classic resolution in game configuration
+A resoluçao da tela de execuçao ainda deve ser 1366x768
 */
 
 var robot = require('robotjs');
+
+const invSlotX = [857, 900, 950, 997,857, 900, 950, 997, 857, 900, 950, 997, 857, 900, 950, 997];
+const invSlotY = [250, 250, 250, 250, 285, 285, 285, 285, 320, 320, 320, 320, 355, 355, 355, 355]; 
 
 function main(){
 
     console.log("Starting...");
     sleep(3000);
 
+    // Apos 7 rotates, ao nao detectar uma arvore, programa acaba
+    var rotateMax = 7;
+    var rotateCount = 0;
+    var slot = 0;
+    var slotMax = 15;
     while(true){
         var tree = findTree();
         if (tree == false){
+            if(!(rotateCount < rotateMax)){
+                break;
+            }
+            rotateCount++;
+            console.log("Rotating camera " + rotateCount + "x");
             rotateCamera();
             continue;
         }
        
+        rotateCount = 0;
         sleep(400);
 
         robot.moveMouse(tree.x, tree.y);
         sleep(200);
         robot.mouseClick();
         
-        sleep(3000);
+        sleep(1000);
 
-        dropLogs();
-
+        checkLog(slot);
+        slot++;
+        if(!(slot < slotMax)){
+            dropLogs();
+            slot = 0;
+        }
     }
+
+    //Auto log Out ao terminar;
+    robot.moveMouse(942, 506);
+    sleep(200);
+    robot.mouseClick();
+
+    robot.moveMouse(939, 456);
+    sleep(200);
+    robot.mouseClick();
 
     console.log("Done.");
 
@@ -53,7 +82,7 @@ function findTree(){
             var screenX = randomX + x;
             var screenY = randomY + y;
 
-            console.log("found a tree at:" + screenX + ", " + screenY + " color" + cor_amostra);
+            console.log("found a tree at:" + screenX + ", " + screenY);
             return{x: screenX, y: screenY};
         }
     }
@@ -68,16 +97,14 @@ function findTree(){
     }
 
     function rotateCamera(){
-        console.log("Rotating camera");
         robot.keyToggle("right", "down");
         sleep(1000);
         robot.keyToggle("right", "up");
     }
 
-    function dropLogs(){
-        var invSlotX = 919;
-        var invSlotY = 253;
-        var pixelColor = robot.getPixelColor(invSlotX, invSlotY);
+    function checkLog(proxSlot){
+        var proxSlot;
+        var pixelColor = robot.getPixelColor(invSlotX[proxSlot],invSlotY[proxSlot]);
         var invLogColor = "ff0000"; 
 
         // Prende a funcao ate coletar a log com sucesso
@@ -85,19 +112,25 @@ function findTree(){
         var maxCiclos = 15;
         while(pixelColor != invLogColor && ciclosEspera < maxCiclos){
             sleep(1000);
-            pixelColor = robot.getPixelColor(invSlotX, invSlotY);
+            pixelColor = robot.getPixelColor(invSlotX[proxSlot], invSlotY[proxSlot]);
             ciclosEspera++;
         }
-        
-        // dropa o primeiro slot se a cor for encontrada
-        if(pixelColor == invLogColor){
-            robot.keyToggle("shift", "down");
-            robot.moveMouse(invSlotX, invSlotY);
-            robot.mouseClick();
-            robot.keyToggle("shift", "down");
-        }
-        
-       // console.log("invetory log color is: " + pixelColor);
+        console.log("Log no slot " + proxSlot + " detectada");
     }
+
+    function dropLogs(){
+
+        robot.keyToggle("shift", "down");
+
+        for(var i = 0; i < 15; i++){
+        robot.moveMouse(invSlotX[i], invSlotY[i]);
+        sleep (600);
+        robot.mouseClick();
+        sleep(100);
+        }
+
+        robot.keyToggle("shift", "up");
+ 
+    }  
 
 main();
